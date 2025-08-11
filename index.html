@@ -76,8 +76,8 @@
   <a-scene 
     id="scene" 
     background="color: #0a0a0a" 
-    fog="type: exponential; density: 0.015; color: #2a2a3a" 
-    renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true" 
+    fog="type: exponential; density: 0.012; color: #2a2a3a" 
+    renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true; shadowMapType: PCFSoft; toneMapping: ACESFilmic; toneMappingExposure: 1.2; outputEncoding: sRGBEncoding" 
     vr-mode-ui="enabled: true" 
     cursor="rayOrigin: mouse"
     embedded style="height: 100vh; width: 100vw;">
@@ -378,26 +378,47 @@
       },
       
       createZombieHead(variations) {
-        // Head
+        // Enhanced head with higher poly count
         const head = document.createElement('a-entity');
-        head.setAttribute('geometry', 'primitive: box; width: 0.35; height: 0.4; depth: 0.3');
-        head.setAttribute('material', `color: ${variations.skinColor}; roughness: 0.8`);
+        head.setAttribute('geometry', 'primitive: box; width: 0.35; height: 0.4; depth: 0.3; segmentsWidth: 4; segmentsHeight: 4; segmentsDepth: 4');
+        head.setAttribute('material', `color: ${variations.skinColor}; roughness: 0.9; metalness: 0.1; normalMap: #skin-normal`);
         head.setAttribute('position', '0 1.85 0');
         this.el.appendChild(head);
         this.headEl = head;
         
-        // Glowing red eyes
+        // Hair
+        const hair = document.createElement('a-entity');
+        hair.setAttribute('geometry', 'primitive: box; width: 0.38; height: 0.15; depth: 0.32; segmentsWidth: 2; segmentsHeight: 2');
+        hair.setAttribute('material', `color: ${variations.hairColor || '#3c2414'}; roughness: 0.95; metalness: 0.05`);
+        hair.setAttribute('position', '0 0.225 0');
+        head.appendChild(hair);
+        
+        // Enhanced glowing red eyes with more detail
         const leftEye = document.createElement('a-entity');
-        leftEye.setAttribute('geometry', 'primitive: sphere; radius: 0.04');
-        leftEye.setAttribute('material', 'color: #ff0000; emissive: #ff0000; emissiveIntensity: 0.5');
+        leftEye.setAttribute('geometry', 'primitive: sphere; radius: 0.045; segmentsWidth: 12; segmentsHeight: 8');
+        leftEye.setAttribute('material', 'color: #ff0000; emissive: #ff0000; emissiveIntensity: 0.8; metalness: 0.1; roughness: 0.3');
         leftEye.setAttribute('position', '-0.08 0.05 0.16');
         head.appendChild(leftEye);
         
         const rightEye = document.createElement('a-entity');
-        rightEye.setAttribute('geometry', 'primitive: sphere; radius: 0.04');
-        rightEye.setAttribute('material', 'color: #ff0000; emissive: #ff0000; emissiveIntensity: 0.5');
+        rightEye.setAttribute('geometry', 'primitive: sphere; radius: 0.045; segmentsWidth: 12; segmentsHeight: 8');
+        rightEye.setAttribute('material', 'color: #ff0000; emissive: #ff0000; emissiveIntensity: 0.8; metalness: 0.1; roughness: 0.3');
         rightEye.setAttribute('position', '0.08 0.05 0.16');
         head.appendChild(rightEye);
+        
+        // Nose
+        const nose = document.createElement('a-entity');
+        nose.setAttribute('geometry', 'primitive: box; width: 0.04; height: 0.08; depth: 0.05');
+        nose.setAttribute('material', `color: ${variations.skinColor}; roughness: 0.85; metalness: 0.1`);
+        nose.setAttribute('position', '0 0.02 0.175');
+        head.appendChild(nose);
+        
+        // Mouth
+        const mouth = document.createElement('a-entity');
+        mouth.setAttribute('geometry', 'primitive: box; width: 0.12; height: 0.04; depth: 0.02');
+        mouth.setAttribute('material', 'color: #2c1810; roughness: 0.9');
+        mouth.setAttribute('position', '0 -0.08 0.16');
+        head.appendChild(mouth);
       },
       
       createZombieTorso(variations) {
@@ -480,28 +501,58 @@
         this.t += deltaTime / 1000;
         const speed = this.data.speed * (deltaTime / 1000);
         
-        // Move towards player
+        // Move towards player with collision detection
         const playerPos = this.player.getWorldPosition(this.tmp);
         const myPos = this.el.object3D.position;
         const direction = this.tmp.set(playerPos.x - myPos.x, 0, playerPos.z - myPos.z);
         const distance = direction.length();
         
-        if (distance > 0.001) {
+        // Zombie collision radius - they stop before reaching player
+        const stopDistance = 1.2;
+        const attackDistance = 1.4;
+        
+        if (distance > stopDistance) {
           direction.normalize();
+          
+          // Check for other zombies nearby to avoid clustering
+          const nearbyZombies = document.querySelectorAll('.enemy');
+          let avoidanceVector = new THREE.Vector3(0, 0, 0);
+          
+          nearbyZombies.forEach(otherZombie => {
+            if (otherZombie === this.el) return;
+            
+            const otherPos = otherZombie.object3D.position;
+            const zombieDistance = myPos.distanceTo(otherPos);
+            
+            if (zombieDistance < 1.5 && zombieDistance > 0.1) {
+              const avoidDir = new THREE.Vector3().subVectors(myPos, otherPos).normalize();
+              avoidanceVector.add(avoidDir.multiplyScalar(0.3));
+            }
+          });
+          
+          // Combine movement toward player with avoidance
+          direction.add(avoidanceVector).normalize();
           myPos.addScaledVector(direction, speed);
           
           const yaw = Math.atan2(direction.x, direction.z) * THREE.MathUtils.RAD2DEG;
           this.el.setAttribute('rotation', `0 ${yaw} 0`);
+        } else {
+          // Stop moving but still face player
+          direction.normalize();
+          const yaw = Math.atan2(direction.x, direction.z) * THREE.MathUtils.RAD2DEG;
+          this.el.setAttribute('rotation', `0 ${yaw} 0`);
         }
         
-        // Walking animation
-        const walkSpeed = 4;
-        const armSwing = 0.5;
-        const legSwing = 0.7;
+        // Enhanced walking animation with speed variation
+        const walkSpeed = distance > stopDistance ? 5 : 2; // Slower when close
+        const armSwing = distance > stopDistance ? 0.6 : 0.3;
+        const legSwing = distance > stopDistance ? 0.8 : 0.4;
         
         if (this.armL && this.armR) {
           this.armL.object3D.rotation.z = armSwing * Math.sin(this.t * walkSpeed);
           this.armR.object3D.rotation.z = -armSwing * Math.sin(this.t * walkSpeed);
+          this.armL.object3D.rotation.x = armSwing * 0.4 * Math.cos(this.t * walkSpeed);
+          this.armR.object3D.rotation.x = -armSwing * 0.4 * Math.cos(this.t * walkSpeed);
         }
         
         if (this.legL && this.legR) {
@@ -509,9 +560,34 @@
           this.legR.object3D.rotation.x = legSwing * Math.sin(this.t * walkSpeed);
         }
         
-        // Attack player if close
-        if (distance < 0.8) {
-          this.el.emit('zombie-hit-player');
+        // Torso bobbing
+        if (this.torso && distance > stopDistance) {
+          this.torso.object3D.position.y = 1.2 + 0.04 * Math.sin(this.t * walkSpeed * 2);
+        }
+        
+        // Attack player if in range but not too close
+        if (distance < attackDistance && distance > 0.8) {
+          // Cooldown attack to prevent spam
+          if (!this.attackCooldown || time - this.attackCooldown > 1500) {
+            this.el.emit('zombie-hit-player');
+            this.attackCooldown = time;
+            
+            // Attack animation
+            this.performAttackAnimation();
+          }
+        }
+      },
+      
+      performAttackAnimation() {
+        // Zombie lunge animation
+        if (this.armL && this.armR) {
+          this.armL.setAttribute('animation', 'property: rotation; to: -45 0 45; dur: 300; easing: easeOutQuad');
+          this.armR.setAttribute('animation', 'property: rotation; to: -45 0 -45; dur: 300; easing: easeOutQuad');
+          
+          setTimeout(() => {
+            this.armL.setAttribute('animation', 'property: rotation; to: 0 0 0; dur: 400; easing: easeOutBounce');
+            this.armR.setAttribute('animation', 'property: rotation; to: 0 0 0; dur: 400; easing: easeOutBounce');
+          }, 300);
         }
       }
     });
@@ -541,29 +617,87 @@
       
       createDetailedGun() {
         const gunContainer = document.createElement('a-entity');
-        gunContainer.setAttribute('position', '0 -0.1 -0.15');
+        // Better positioning for hand grip
+        gunContainer.setAttribute('position', '0.02 -0.05 0.08');
+        gunContainer.setAttribute('rotation', '0 0 0');
         
-        // Gun barrel
+        // High-quality gun barrel
         const barrel = document.createElement('a-entity');
-        barrel.setAttribute('geometry', 'primitive: cylinder; radius: 0.02; height: 0.35');
-        barrel.setAttribute('material', 'color: #2c2c2c; metalness: 0.8; roughness: 0.2');
-        barrel.setAttribute('position', '0 0 -0.15');
+        barrel.setAttribute('geometry', 'primitive: cylinder; radius: 0.025; height: 0.4; segmentsHeight: 8; segmentsRadial: 16');
+        barrel.setAttribute('material', 'color: #1a1a1a; metalness: 0.9; roughness: 0.15; normalMap: #barrel-normal');
+        barrel.setAttribute('position', '0 0.02 -0.2');
         barrel.setAttribute('rotation', '90 0 0');
         gunContainer.appendChild(barrel);
         
-        // Gun body
+        // Barrel tip with threading
+        const barrelTip = document.createElement('a-entity');
+        barrelTip.setAttribute('geometry', 'primitive: cylinder; radius: 0.028; height: 0.04; segmentsRadial: 12');
+        barrelTip.setAttribute('material', 'color: #0a0a0a; metalness: 0.95; roughness: 0.1');
+        barrelTip.setAttribute('position', '0 0.02 -0.42');
+        barrelTip.setAttribute('rotation', '90 0 0');
+        gunContainer.appendChild(barrelTip);
+        
+        // Enhanced gun body/receiver
         const receiver = document.createElement('a-entity');
-        receiver.setAttribute('geometry', 'primitive: box; width: 0.08; height: 0.12; depth: 0.25');
-        receiver.setAttribute('material', 'color: #3a3a3a; metalness: 0.7; roughness: 0.3');
-        receiver.setAttribute('position', '0 0.01 -0.05');
+        receiver.setAttribute('geometry', 'primitive: box; width: 0.09; height: 0.14; depth: 0.28');
+        receiver.setAttribute('material', 'color: #2a2a2a; metalness: 0.8; roughness: 0.25');
+        receiver.setAttribute('position', '0 0.03 -0.02');
         gunContainer.appendChild(receiver);
         
-        // Magazine
+        // Trigger guard
+        const triggerGuard = document.createElement('a-entity');
+        triggerGuard.setAttribute('geometry', 'primitive: torus; radius: 0.04; radiusTubular: 0.008; segmentsRadial: 16; segmentsTubular: 32');
+        triggerGuard.setAttribute('material', 'color: #1a1a1a; metalness: 0.9; roughness: 0.2');
+        triggerGuard.setAttribute('position', '0 -0.02 0.03');
+        triggerGuard.setAttribute('rotation', '90 0 0');
+        gunContainer.appendChild(triggerGuard);
+        
+        // Trigger
+        const trigger = document.createElement('a-entity');
+        trigger.setAttribute('geometry', 'primitive: box; width: 0.015; height: 0.035; depth: 0.012');
+        trigger.setAttribute('material', 'color: #333333; metalness: 0.7; roughness: 0.4');
+        trigger.setAttribute('position', '0 -0.02 0.03');
+        gunContainer.appendChild(trigger);
+        this.trigger = trigger;
+        
+        // Enhanced magazine
         const magazine = document.createElement('a-entity');
-        magazine.setAttribute('geometry', 'primitive: box; width: 0.06; height: 0.15; depth: 0.08');
-        magazine.setAttribute('material', 'color: #2a2a2a; metalness: 0.7; roughness: 0.3');
-        magazine.setAttribute('position', '0 -0.08 0.05');
+        magazine.setAttribute('geometry', 'primitive: box; width: 0.07; height: 0.18; depth: 0.1');
+        magazine.setAttribute('material', 'color: #1f1f1f; metalness: 0.8; roughness: 0.3');
+        magazine.setAttribute('position', '0 -0.1 0.06');
         gunContainer.appendChild(magazine);
+        this.magazine_model = magazine;
+        
+        // Grip
+        const grip = document.createElement('a-entity');
+        grip.setAttribute('geometry', 'primitive: box; width: 0.08; height: 0.15; depth: 0.11');
+        grip.setAttribute('material', 'color: #1a1a1a; metalness: 0.3; roughness: 0.8');
+        grip.setAttribute('position', '0 -0.08 0.1');
+        gunContainer.appendChild(grip);
+        
+        // Sight (front)
+        const frontSight = document.createElement('a-entity');
+        frontSight.setAttribute('geometry', 'primitive: box; width: 0.015; height: 0.03; depth: 0.008');
+        frontSight.setAttribute('material', 'color: #ff6b35; emissive: #ff6b35; emissiveIntensity: 0.4');
+        frontSight.setAttribute('position', '0 0.08 -0.3');
+        gunContainer.appendChild(frontSight);
+        
+        // Rear sight
+        const rearSight = document.createElement('a-entity');
+        rearSight.setAttribute('geometry', 'primitive: box; width: 0.04; height: 0.025; depth: 0.008');
+        rearSight.setAttribute('material', 'color: #1a1a1a; metalness: 0.9; roughness: 0.2');
+        rearSight.setAttribute('position', '0 0.08 0.08');
+        gunContainer.appendChild(rearSight);
+        
+        // Muzzle flash (initially hidden)
+        const muzzleFlash = document.createElement('a-entity');
+        muzzleFlash.setAttribute('geometry', 'primitive: cone; radius: 0.15; height: 0.3; segmentsRadial: 8');
+        muzzleFlash.setAttribute('material', 'color: #ffff88; emissive: #ffaa00; emissiveIntensity: 1.5; opacity: 0; transparent: true; side: double');
+        muzzleFlash.setAttribute('position', '0 0.02 -0.45');
+        muzzleFlash.setAttribute('rotation', '90 0 0');
+        muzzleFlash.setAttribute('visible', 'false');
+        gunContainer.appendChild(muzzleFlash);
+        this.muzzleFlash = muzzleFlash;
         
         this.el.appendChild(gunContainer);
         this.gunModel = gunContainer;
@@ -582,8 +716,8 @@
         this.magazine--;
         this.updateUI();
         
-        // Gun recoil
-        this.animateRecoil();
+        // Comprehensive shooting animation
+        this.animateShoot();
         
         // Raycasting
         const origin = new THREE.Vector3();
@@ -608,12 +742,78 @@
             
             zombie.takeDamage(1, isHeadshot);
             Game.addScore(isHeadshot ? 25 : 15);
+            
+            // Hit marker effect
+            this.createHitMarker(isHeadshot);
           }
         }
         
         setTimeout(() => {
           this.canShoot = true;
-        }, 150);
+        }, 120);
+      },
+      
+      animateShoot() {
+        // Trigger pull animation
+        if (this.trigger) {
+          this.trigger.setAttribute('animation', 'property: rotation; to: 15 0 0; dur: 80; easing: easeOutQuad');
+          setTimeout(() => {
+            this.trigger.setAttribute('animation', 'property: rotation; to: 0 0 0; dur: 120; easing: easeOutBounce');
+          }, 80);
+        }
+        
+        // Muzzle flash
+        this.showMuzzleFlash();
+        
+        // Gun recoil
+        this.animateRecoil();
+        
+        // Shell ejection
+        this.ejectShell();
+      },
+      
+      showMuzzleFlash() {
+        if (this.muzzleFlash) {
+          this.muzzleFlash.setAttribute('visible', 'true');
+          this.muzzleFlash.setAttribute('material', 'opacity: 0.9; emissiveIntensity: 1.5');
+          this.muzzleFlash.setAttribute('animation', 'property: material.opacity; to: 0; dur: 120; easing: easeOutQuad');
+          this.muzzleFlash.setAttribute('animation__scale', 'property: scale; to: 1.5 1.5 1.5; dur: 60; easing: easeOutQuad');
+          
+          setTimeout(() => {
+            this.muzzleFlash.setAttribute('visible', 'false');
+            this.muzzleFlash.setAttribute('scale', '1 1 1');
+          }, 120);
+        }
+      },
+      
+      ejectShell() {
+        const shell = document.createElement('a-entity');
+        shell.setAttribute('geometry', 'primitive: cylinder; radius: 0.008; height: 0.018; segmentsRadial: 8');
+        shell.setAttribute('material', 'color: #ffcc00; metalness: 0.8; roughness: 0.2');
+        shell.setAttribute('position', '0.05 0.02 -0.05');
+        
+        // Shell ejection physics
+        const ejectionX = 0.3 + Math.random() * 0.2;
+        const ejectionY = -0.4 - Math.random() * 0.3;
+        const ejectionZ = 0.1 + Math.random() * 0.2;
+        
+        shell.setAttribute('animation', `property: position; to: ${ejectionX} ${ejectionY} ${ejectionZ}; dur: 800; easing: easeOutQuad`);
+        shell.setAttribute('animation__rotation', `property: rotation; to: ${Math.random() * 360} ${Math.random() * 360} ${Math.random() * 360}; dur: 800`);
+        shell.setAttribute('animation__fade', 'property: material.opacity; to: 0; dur: 800; delay: 200');
+        
+        this.gunModel.appendChild(shell);
+        setTimeout(() => shell.remove(), 1000);
+      },
+      
+      createHitMarker(isHeadshot) {
+        const hitMarker = document.createElement('a-entity');
+        hitMarker.setAttribute('text', `value: ${isHeadshot ? 'HEADSHOT!' : 'HIT'}; align: center; color: ${isHeadshot ? '#ff0000' : '#ffff00'}; width: 8`);
+        hitMarker.setAttribute('position', '0 0.2 -2');
+        hitMarker.setAttribute('animation', 'property: position; to: 0 0.5 -2; dur: 600; easing: easeOutQuad');
+        hitMarker.setAttribute('animation__fade', 'property: text.color; to: #333333; dur: 600');
+        
+        document.querySelector('#player').appendChild(hitMarker);
+        setTimeout(() => hitMarker.remove(), 600);
       },
       
       animateRecoil() {
@@ -678,24 +878,32 @@
       
       handleMovement(detail) {
         const { x, y } = detail;
-        const threshold = 0.1;
+        const threshold = 0.15;
         
         if (Math.abs(x) < threshold && Math.abs(y) < threshold) {
           this.moveVector.set(0, 0, 0);
           return;
         }
         
-        const cameraRotation = this.camera.object3D.rotation.y;
-        const speed = this.isSprinting ? this.baseSpeed * 2 : this.baseSpeed;
+        // Get camera world direction for proper movement
+        const cameraDirection = new THREE.Vector3();
+        this.camera.object3D.getWorldDirection(cameraDirection);
         
-        const forward = -y * speed;
-        const strafe = x * speed;
+        // Get camera right vector
+        const cameraRight = new THREE.Vector3();
+        cameraRight.crossVectors(cameraDirection, this.camera.object3D.up).normalize();
         
-        this.moveVector.set(
-          strafe * Math.cos(cameraRotation) - forward * Math.sin(cameraRotation),
-          0,
-          strafe * Math.sin(cameraRotation) + forward * Math.cos(cameraRotation)
-        );
+        const speed = this.isSprinting ? this.baseSpeed * 2.5 : this.baseSpeed;
+        
+        // Forward/backward movement (y-axis on joystick)
+        const forwardMovement = cameraDirection.clone().multiplyScalar(-y * speed);
+        
+        // Left/right strafe movement (x-axis on joystick)
+        const strafeMovement = cameraRight.clone().multiplyScalar(x * speed);
+        
+        // Combine movements and ensure Y stays at 0 (no flying)
+        this.moveVector.copy(forwardMovement).add(strafeMovement);
+        this.moveVector.y = 0;
       },
       
       handleTurning(detail) {
