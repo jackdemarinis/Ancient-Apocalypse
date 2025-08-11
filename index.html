@@ -3,33 +3,41 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-  <title>WebXR Zombies – Abandoned House (Quest 3)</title>
+  <title>Abandoned House: VR Zombies – Enhanced Quest 3 Experience</title>
+  
   <!-- A‑Frame core + extras (CDNs) -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.7.0/dist/aframe-extras.min.js"></script>
-  <style>
-    html,body{height:100%;margin:0;background:#000}
-    /* 2D overlays for Start + GameOver + HUD */
-    .ui{position:fixed;inset:0;display:grid;place-items:center;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-    .panel{background:rgba(10,13,20,.85);border:1px solid rgba(148,163,184,.25);box-shadow:0 10px 40px rgba(0,0,0,.45);padding:20px 24px;border-radius:16px;color:#e5e7eb;min-width:320px;max-width:90vw;text-align:center}
-    .title{font-weight:800;font-size:28px;letter-spacing:.5px;margin-bottom:8px}
-    .subtitle{opacity:.8;margin-bottom:16px}
-    .btn{display:inline-block;padding:10px 16px;border-radius:12px;border:1px solid rgba(99,102,241,.6);cursor:pointer}
-    .btn:hover{background:rgba(99,102,241,.08)}
-    .small{font-size:12px;color:#9ca3af;margin-top:12px}
-    #menu,#gameover{z-index:10}
-    #hud2d{position:fixed;left:12px;right:12px;bottom:12px;display:none;justify-content:space-between;gap:8px;pointer-events:none;z-index:9}
-    .hudchip{background:rgba(15,23,42,.65);border:1px solid rgba(148,163,184,.25);padding:8px 12px;border-radius:12px;color:#e5e7eb;min-width:120px}
-  </style>
+  
+  <!-- Enhanced Styles -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Game Components -->
+  <script src="components/zombie.js"></script>
+  <script src="components/gun.js"></script>
+  <script src="components/controls.js"></script>
+  <script src="components/lighting.js"></script>
+  <script src="components/environment.js"></script>
+  <script src="components/game-manager.js"></script>
 </head>
 <body>
+  <!-- Loading Screen -->
+  <div id="loading" class="loading">
+    <h2>Loading VR Zombie Experience...</h2>
+    <div class="spinner"></div>
+    <p>Initializing weapons, zombies, and environment...</p>
+  </div>
+
   <!-- START MENU -->
   <div id="menu" class="ui">
     <div class="panel">
       <div class="title">ABANDONED HOUSE: VR ZOMBIES</div>
-      <div class="subtitle">Quest 3 • WebXR • Wave Survival</div>
+      <div class="subtitle">Quest 3 • Enhanced WebXR • Wave Survival</div>
       <div class="btn" id="startBtn">Start Game</div>
-      <div class="small">Controls: Move LS • Turn RS • Shoot RT • Reload A • Use X • Sprint L‑Stick Click</div>
+      <div class="small">
+        VR Controls: Move LS • Turn RS • Shoot RT • Reload A • Teleport X • Sprint L‑Stick • Restart Y<br/>
+        Desktop: WASD Move • Mouse Look • Click Shoot • R Reload • Shift Sprint
+      </div>
     </div>
   </div>
 
@@ -38,250 +46,159 @@
     <div class="panel">
       <div class="title">GAME OVER</div>
       <div class="subtitle" id="finalScore">Score 0 • Wave 1</div>
-      <div class="btn" id="retryBtn">Retry</div>
-      <div class="small">Tip: Repair boards and buy a better gun early.</div>
+      <div class="btn" id="retryBtn">Restart Game</div>
+      <div class="small">
+        VR: Press Y to restart instantly<br/>
+        Tip: Use teleportation and cover for better survival
+      </div>
     </div>
   </div>
 
-  <!-- 2D HUD -->
+  <!-- Enhanced 2D HUD -->
   <div id="hud2d">
-    <div class="hudchip"><span id="hudWave">Wave 1</span> • <span id="hudZ">Zombies 0</span> • <span id="hudScore">Score 0</span></div>
-    <div class="hudchip"><span id="hudHP">HP 100</span> • <span id="hudAmmo">Ammo 10/60</span></div>
-    <div class="hudchip"><span id="hudPowers">—</span></div>
+    <div class="hudchip">
+      <span id="hudWave">Wave 1</span> • 
+      <span id="hudScore">Score 0</span>
+    </div>
+    <div class="hudchip">
+      <span id="hudHP">HP 100</span> • 
+      <span id="hudAmmo">Ammo 15/90</span>
+    </div>
+    <div class="hudchip">
+      <span id="hudPowers">—</span>
+    </div>
   </div>
 
-  <!-- SCENE -->
-  <a-scene id="scene" background="color:#0b0e13" fog="type:exponential;density:0.025;color:#0b0e13" renderer="colorManagement:true;physicallyCorrectLights:true;antialias:true" vr-mode-ui="enabled:true" cursor="rayOrigin: mouse">
+  <!-- VR Restart Button -->
+  <div id="vrRestartBtn" style="display:none">Press Y to Restart</div>
 
-    <!-- LIGHTS: moody interior + flicker -->
-    <a-entity light="type: ambient; intensity: 0.35; color: #667"></a-entity>
-    <a-entity id="moon" position="4 6 -6" light="type: directional; castShadow: true; intensity: 0.45; color: #aab"></a-entity>
-    <a-entity id="bulb" position="0 2 -1" light="type: point; intensity: 0.9; distance: 10; decay: 1; color: #f7e7b9"></a-entity>
+  <!-- Enhanced SCENE -->
+  <a-scene 
+    id="scene" 
+    background="color: #0a0a0a" 
+    fog="type: exponential; density: 0.035; color: #1a1a2e" 
+    renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true; shadowMapType: PCF" 
+    vr-mode-ui="enabled: true" 
+    cursor="rayOrigin: mouse"
+    dynamic-lighting
+    environment-manager
+    lighting-manager>
 
-    <!-- ABANDONED HOUSE SHELL -->
-    <a-entity id="house">
-      <!-- floor -->
-      <a-entity geometry="primitive: box; depth: 12; width: 12; height: 0.2" position="0 -0.1 0" material="color:#1f2937; roughness:1; metalness:0" shadow="receive:true"></a-entity>
-      <!-- walls -->
-      <a-entity geometry="primitive: box; depth: 0.3; width: 12; height: 3" position="0 1.5 -6" material="color:#2a3342"></a-entity>
-      <a-entity geometry="primitive: box; depth: 0.3; width: 12; height: 3" position="0 1.5 6" material="color:#2a3342"></a-entity>
-      <a-entity geometry="primitive: box; depth: 12; width: 0.3; height: 3" position="-6 1.5 0" material="color:#263241"></a-entity>
-      <a-entity geometry="primitive: box; depth: 12; width: 0.3; height: 3" position="6 1.5 0" material="color:#263241"></a-entity>
-      <!-- door opening front wall (transparent) -->
-      <a-entity geometry="primitive: box; depth: 0.3; width: 4; height: 3" position="0 1.5 -6" material="opacity:0; transparent:true"></a-entity>
-      <!-- broken planks over windows -->
-      <a-entity geometry="primitive: box; width: 1.6; height: 0.1; depth: 0.08" position="-2 1.6 -6.01" material="color:#5b4b40"></a-entity>
-      <a-entity geometry="primitive: box; width: 1.6; height: 0.1; depth: 0.08" position=" 2 1.3 -6.01" rotation="0 0 15" material="color:#5b4b40"></a-entity>
-      <!-- interior props -->
-      <a-entity geometry="primitive: box; width: 1.8; height: 0.8; depth: 0.6" position="-3 0.4 -2" material="color:#3b3f46" shadow="cast:true"></a-entity>
-      <a-entity geometry="primitive: cylinder; radius: 0.15; height: .8" position="2 .4 1.5" material="color:#444"></a-entity>
-      <a-entity geometry="primitive: box; width: 2.2; height: 0.2; depth: 0.8" position="2 .85 1.5" material="color:#373a40" shadow="cast:true"></a-entity>
-      <!-- ceiling beams -->
-      <a-entity geometry="primitive: box; width: 12; height: 0.15; depth: 0.2" position="0 2.8 -4" material="color:#4b5563"></a-entity>
-      <a-entity geometry="primitive: box; width: 12; height: 0.15; depth: 0.2" position="0 2.8 0" material="color:#4b5563"></a-entity>
-      <a-entity geometry="primitive: box; width: 12; height: 0.15; depth: 0.2" position="0 2.8 4" material="color:#4b5563"></a-entity>
-    </a-entity>
-
-    <!-- LOCKED DOOR to back room (opens with X near it) -->
-    <a-entity id="lockedDoor" interactable="type:door; cost: 500; label: 'Unlock Door – 500'" position="0 1.2 6">
-      <a-entity geometry="primitive: box; width: 2; height: 2.4; depth: 0.15" material="color:#3a3f46" shadow="cast:true"></a-entity>
-    </a-entity>
-
-    <!-- BACK ROOM (initially blocked by door) -->
-    <a-entity id="backroom">
-      <a-entity geometry="primitive: box; depth: 8; width: 12; height: 0.2" position="0 -0.1 10" material="color:#202833" shadow="receive:true"></a-entity>
-      <a-entity geometry="primitive: box; depth: 0.3; width: 12; height: 3" position="0 1.5 14" material="color:#273141"></a-entity>
-      <a-entity geometry="primitive: box; depth: 8; width: 0.3; height: 3" position="-6 1.5 10" material="color:#223040"></a-entity>
-      <a-entity geometry="primitive: box; depth: 8; width: 0.3; height: 3" position="6 1.5 10" material="color:#223040"></a-entity>
-      <!-- Wall-buy on the right wall -->
-      <a-entity id="smgBuy" interactable="type:wallbuy; cost: 750; label: 'Buy SMG – 750'" position="5 1 11.5">
-        <a-entity geometry="primitive: box; width: 0.9; height: 0.35; depth: 0.05" material="color:#4f46e5"></a-entity>
+    <!-- ENHANCED PLAYER RIG with VR Controls -->
+    <a-entity 
+      id="rig" 
+      movement-controls="fly: false; speed: 0.18; acceleration: 60" 
+      position="0 0 3"
+      vr-controls>
+      <a-entity 
+        id="player" 
+        camera 
+        look-controls 
+        wasd-controls-enabled="false" 
+        position="0 1.6 0">
+      </a-entity>
+      <a-entity 
+        id="leftHand" 
+        hand-controls="hand: left; handModelStyle: lowPoly; color: #15803d">
+      </a-entity>
+      <a-entity 
+        id="rightHand" 
+        hand-controls="hand: right; handModelStyle: lowPoly; color: #15803d" 
+        gun>
       </a-entity>
     </a-entity>
 
-    <!-- PLAYER RIG -->
-    <a-entity id="rig" movement-controls="fly:false; speed:0.18; acceleration:60" position="0 0 3">
-      <a-entity id="player" camera look-controls wasd-controls-enabled="false" position="0 1.6 0"></a-entity>
-      <a-entity id="leftHand" hand-controls="hand: left; handModelStyle: lowPoly;"></a-entity>
-      <a-entity id="rightHand" hand-controls="hand: right; handModelStyle: lowPoly;" gun></a-entity>
-    </a-entity>
+    <!-- DETAILED ENVIRONMENT (replaced by environment component) -->
+    <a-entity id="house" detailed-environment></a-entity>
 
-    <!-- GAME ROOT -->
+    <!-- GAME MANAGER -->
     <a-entity id="game" game-manager></a-entity>
 
   </a-scene>
 
   <script>
-    // ===== helpers =====
-    const V3 = THREE.Vector3;
-    const randOnRing = (rmin, rmax) => { const r = THREE.MathUtils.lerp(rmin, rmax, Math.random()); const a = Math.random() * Math.PI * 2; return new V3(Math.cos(a)*r, 0, Math.sin(a)*r); };
+    // Hide loading screen when everything is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      const scene = document.querySelector('a-scene');
+      
+      scene.addEventListener('loaded', () => {
+        // Small delay to ensure all components are initialized
+        setTimeout(() => {
+          const loading = document.getElementById('loading');
+          if (loading) {
+            loading.style.opacity = '0';
+            setTimeout(() => {
+              loading.style.display = 'none';
+            }, 500);
+          }
+        }, 1000);
+      });
+    });
 
-    // ===== Interactable (door/wall-buy) =====
-    AFRAME.registerComponent('interactable',{
-      schema:{ type:{default:'door'}, cost:{default:500}, label:{default:''} },
-      init(){
-        this.prompt = document.createElement('a-entity');
-        this.prompt.setAttribute('text',`value:${this.data.label}; align:center; color:#e5e7eb; width: 3`);
-        this.prompt.setAttribute('position','0 1.4 0.1');
-        this.prompt.setAttribute('visible','false');
-        this.el.appendChild(this.prompt);
-        this.player = document.querySelector('#rig').object3D;
-        this.state = 'locked';
-        // listen for X button (left controller)
-        const left = document.querySelector('#leftHand');
-        left.addEventListener('xbuttondown',()=>{
-          if(this.state!=='locked') return;
-          const me=this.el.object3D.position; const p=this.player.position; if(me.distanceTo(p)>1.5) return;
-          if(Game.score < this.data.cost) { Game.toast(`Need ${this.data.cost} points`); return; }
-          Game.addScore(-this.data.cost);
-          if(this.data.type==='door') this.unlockDoor();
-          if(this.data.type==='wallbuy') this.buyWeapon();
-        });
-      },
-      buyWeapon(){
-        const gun = document.querySelector('#rightHand').components.gun;
-        // Upgrade to SMG: faster ROF, bigger mag, lower per-bullet damage
-        gun.setStats({ dmg: 0.8, rpm: 10, maxMag: 24, reserve: Math.max(gun.res, 120) });
-        Game.toast('Purchased SMG');
-        this.prompt.setAttribute('visible','false');
-      },
-      unlockDoor(){
-        if(this.state!=='locked') return;
-        this.state='open';
-        // Slide door down
-        const obj=this.el.object3D; let t=0; const anim=()=>{ t+=0.016; obj.position.y = 1.2 - Math.min(t*2,1.2); if(t<1) requestAnimationFrame(anim); else this.el.remove(); };
-        requestAnimationFrame(anim);
-        Game.toast('Door unlocked');
-      },
-      tick(){
-        // show prompt when close
-        if(this.state!=='locked') { this.prompt.setAttribute('visible','false'); return; }
-        const me=this.el.object3D.position; const p=this.player.position; this.prompt.setAttribute('visible', me.distanceTo(p)<1.7 );
+    // Enhanced VR session management
+    document.addEventListener('enter-vr', () => {
+      console.log('Entered VR mode');
+      // Hide 2D UI elements that might interfere
+      const menu = document.getElementById('menu');
+      const gameover = document.getElementById('gameover');
+      
+      if (menu && menu.style.display !== 'none') {
+        // Auto-start game when entering VR
+        setTimeout(() => {
+          if (Game && Game.state === 'menu') {
+            Game.startGame();
+          }
+        }, 1000);
       }
     });
 
-    // ===== detailed zombie (boxed limbs + clothes + face) =====
-    AFRAME.registerComponent('zombie',{
-      schema:{speed:{default:.64},hp:{default:5}},
-      init(){
-        this.player=document.querySelector('#player').object3D;
-        this.tmp=new V3(); this.dead=false; this.t=0; this.avoidDir=new V3();
-        this.el.classList.add('enemy');
-        const mk=(p)=>{const e=document.createElement('a-entity'); e.setAttribute('position',p); return e};
-        // legs (pants)
-        const legL=mk('-0.18 0.45 0'); legL.setAttribute('geometry','primitive: box; depth:0.22; height:0.9; width:0.22'); legL.setAttribute('material','color:#0b5a6b');
-        const legR=mk(' 0.18 0.45 0'); legR.setAttribute('geometry','primitive: box; depth:0.22; height:0.9; width:0.22'); legR.setAttribute('material','color:#0b5a6b');
-        // torso (shirt)
-        const torso=mk('0 1.2 0'); torso.setAttribute('geometry','primitive: box; depth:0.5; height:1; width:0.8'); torso.setAttribute('material','color:#1e293b');
-        // arms (skin)
-        const armL=mk('-0.6 1.2 0'); armL.setAttribute('geometry','primitive: box; depth:0.2; height:0.8; width:0.2'); armL.setAttribute('material','color:#2bbf6a');
-        const armR=mk(' 0.6 1.2 0'); armR.setAttribute('geometry','primitive: box; depth:0.2; height:0.8; width:0.2'); armR.setAttribute('material','color:#2bbf6a');
-        // head
-        const head=mk('0 1.95 0'); head.setAttribute('geometry','primitive: box; depth:0.36; height:0.42; width:0.42'); head.setAttribute('material','color:#22c55e');
-        // face: eyes + mouth
-        const face=mk('0 2.0 0.24'); face.setAttribute('text','value:◉   ◉; align:center; color:#fff; width:1.6');
-        const mouth=mk('0 1.87 0.24'); mouth.setAttribute('text','value:▔▔; align:center; color:#fca5a5; width:1.6');
-        this.el.append(legL,legR,torso,armL,armR,head,face,mouth);
-        this.headEl=head; this.armL=armL; this.armR=armR; this.legL=legL; this.legR=legR; this.torso=torso; this.mouth=mouth;
-        // ray for simple avoidance
-        this.ray=new THREE.Raycaster(); this.fwd=new V3(0,0,-1);
-      },
-      takeDamage(d=1,isHeadshot=false){ if(this.dead) return; this.data.hp -= isHeadshot? d*2 : d; if(this.data.hp<=0){ this.dead=true; this.el.emit('zombie-killed'); this.el.remove(); }},
-      steerAvoid(me,dir){
-        // raycast ahead; if obstacle, rotate slightly
-        this.ray.set(me, dir);
-        const hits=this.ray.intersectObjects(Game.avoidMeshes,true);
-        if(hits.length && hits[0].distance<0.7){ dir.applyAxisAngle(new THREE.Vector3(0,1,0), 0.8*(Math.random()<.5?1:-1)); }
-      },
-      tick(t,dt){ if(this.dead) return; this.t+=dt/1000; const spd=this.data.speed*(dt/1000);
-        const p=this.player.getWorldPosition(this.tmp); const me=this.el.object3D.position; const dir=this.tmp.set(p.x-me.x,0,p.z-me.z).normalize();
-        this.steerAvoid(me,dir);
-        me.addScaledVector(dir,spd);
-        const yaw=Math.atan2(dir.x,dir.z)*THREE.MathUtils.RAD2DEG; this.el.setAttribute('rotation',`0 ${yaw} 0`);
-        // shambling anim + mouth flap
-        const s=Math.sin(this.t*3); const c=Math.cos(this.t*3);
-        this.armL.object3D.rotation.z = .42*s; this.armR.object3D.rotation.z = -.42*s;
-        this.legL.object3D.rotation.x = .38*c; this.legR.object3D.rotation.x = -.38*c;
-        if((this.t*5|0)%2===0) this.mouth.setAttribute('text','value:▂▂'); else this.mouth.setAttribute('text','value:▔▔');
-        if(me.distanceTo(p)<0.7) this.el.emit('zombie-hit-player');
-      }
+    document.addEventListener('exit-vr', () => {
+      console.log('Exited VR mode');
     });
 
-    // ===== gun (raycast + headshot) =====
-    AFRAME.registerComponent('gun',{
-      init(){
-        this.rpm=7.5; this.dmg=1; this.mag=10; this.res=60; this.maxMag=10; this.can=true; this.tmp=new V3(); this.rc=new THREE.Raycaster(); this.en=[]; this.uiUpdate();
-        const gun=document.createElement('a-entity');
-        gun.setAttribute('geometry','primitive: box; depth:0.32; height:0.11; width:0.18');
-        gun.setAttribute('material','color:#b6b8bd');
-        gun.setAttribute('position','0 -0.02 -0.1');
-        this.el.appendChild(gun);
-        this.el.addEventListener('triggerdown',()=>this.shoot());
-        this.el.addEventListener('abuttondown',()=>this.reload());
-        setInterval(()=>{ this.en=[...document.querySelectorAll('.enemy')].map(e=>e.object3D); },250);
-      },
-      setStats({dmg,rpm,maxMag,reserve}){ if(dmg!==undefined)this.dmg=dmg; if(rpm!==undefined)this.rpm=rpm; if(maxMag!==undefined){ this.maxMag=maxMag; if(this.mag>maxMag)this.mag=maxMag;} if(reserve!==undefined)this.res=reserve; Game.updateHud(); this.uiUpdate(); },
-      uiUpdate(){ document.getElementById('hudAmmo').textContent=`Ammo ${this.mag}/${this.res}`; document.getElementById('hudHP').textContent=`HP ${Game.hp}`; },
-      shoot(){ if(!this.can) return; if(this.mag<=0){return} this.can=false; this.mag--; this.uiUpdate();
-        const o=new V3(); const d=new V3(0,0,-1); this.el.object3D.getWorldPosition(o); this.el.object3D.getWorldDirection(d); this.rc.set(o,d.normalize());
-        const hits=this.rc.intersectObjects(this.en,true);
-        if(hits.length){ let obj=hits[0].object; while(obj && !obj.el) obj=obj.parent; if(obj&&obj.el&&obj.el.components.zombie){ const z=obj.el.components.zombie; const isHead = (obj===z.headEl.object3D || obj===z.headEl.object3D.children?.[0]); z.takeDamage(Game.powerups.instakill?10:this.dmg,isHead); Game.addScore(isHead?20:10); }}
-        setTimeout(()=>this.can=true, 1000/this.rpm);
-      },
-      reload(){ const need=this.maxMag-this.mag; if(need<=0||this.res<=0) return; const take=Math.min(need,this.res); this.mag+=take; this.res-=take; this.uiUpdate(); }
-    });
+    // Performance monitoring
+    let lastFrame = performance.now();
+    let frameCount = 0;
+    let fps = 60;
 
-    // ===== GAME MANAGER =====
-    const Game={ state:'menu', wave:1, score:0, hp:100, alive:true, enemiesAlive:0, powerups:{instakill:false,maxammo:false}, avoidMeshes:[],
-      init(){
-        // Collect meshes to avoid (walls, furniture, door)
-        this.avoidMeshes = [ ...document.querySelectorAll('#house a-entity, #backroom a-entity, #lockedDoor a-entity') ].map(e=>e.object3D).flatMap(o=>o.children);
-        // Menu handlers
-        const start=()=>{ if(this.state!=='menu') return; this.state='playing'; document.getElementById('menu').style.display='none'; document.getElementById('hud2d').style.display='flex'; this.updateHud(); this.startWave(); };
-        document.getElementById('startBtn').onclick=start;
-        // Controller quick-start
-        const rig=document.getElementById('rig'); const begin=()=>start(); rig.addEventListener('abuttondown',begin,{once:true}); rig.addEventListener('triggerdown',begin,{once:true});
-        // Retry
-        document.getElementById('retryBtn').onclick=()=>{ location.reload(); };
-        // Flicker bulb
-        const bulb=document.getElementById('bulb'); setInterval(()=>{ bulb.setAttribute('light',`type: point; intensity: ${0.7+Math.random()*0.6}; distance: 10; decay:1; color: #f7e7b9`); }, 120);
-        this.updateHud();
-      },
-      toast(msg){
-        // quick in-game message via HUD powers chip
-        const chip=document.getElementById('hudPowers'); const prev=chip.textContent; chip.textContent=msg; setTimeout(()=>{ chip.textContent=prev||'—'; }, 1500);
-      },
-      updateHud(){ document.getElementById('hudWave').textContent=`Wave ${this.wave}`; document.getElementById('hudScore').textContent=`Score ${this.score}`; document.getElementById('hudZ').textContent=`Zombies ${this.enemiesAlive}`; const p=[]; if(this.powerups.instakill)p.push('Insta‑Kill'); if(this.powerups.maxammo)p.push('Max Ammo'); document.getElementById('hudPowers').textContent=p.join(', ')||'—'; },
-      addScore(n){ this.score+=n; this.updateHud(); },
-      startWave(){ if(this.state!=='playing') return; const count=Math.min(6+(this.wave-1)*2,70); const base=.6+(this.wave-1)*.06; let spawned=0; const spawnPoints=[ new V3(-5.5,0,-5.2), new V3(5.5,0,-5.2), new V3(-5.5,0,5.2), new V3(5.5,0,5.2), new V3(0,0,13.5) ];
-        const spawn=()=>{ if(spawned>=count||this.state!=='playing') return; const e=document.createElement('a-entity'); e.setAttribute('zombie',`speed:${base+Math.random()*0.22}; hp:${Math.ceil(4+this.wave*.6)}`); const sp=spawnPoints[Math.floor(Math.random()*spawnPoints.length)]; e.setAttribute('position',`${sp.x} 0 ${sp.z}`); e.setAttribute('shadow','cast:true');
-          e.addEventListener('zombie-killed',()=>{ this.enemiesAlive--; this.maybeDrop(e.object3D.position); this.updateHud(); if(this.enemiesAlive<=0 && spawned>=count) setTimeout(()=>{ this.wave++; this.updateHud(); this.startWave(); }, 1200); });
-          e.addEventListener('zombie-hit-player',()=>{ if(!this.alive) return; this.hp-=6; if(this.hp<0)this.hp=0; document.getElementById('hudHP').textContent=`HP ${this.hp}`; if(this.hp<=0) this.gameOver(); });
-          document.querySelector('a-scene').appendChild(e); this.enemiesAlive++; spawned++; this.updateHud(); setTimeout(spawn, 650 - Math.min(this.wave*18, 450)); };
-        spawn();
-      },
-      maybeDrop(pos){ if(Math.random()<.16){ const kind=Math.random()<.5?'instakill':'maxammo'; const p=document.createElement('a-entity'); p.setAttribute('geometry','primitive: dodecahedron; radius: 0.25'); p.setAttribute('material',`color:${kind==='instakill'?'#ef4444':'#60a5fa'}`); p.setAttribute('position',`${pos.x} 0.3 ${pos.z}`); p.setAttribute('powerup',`type:${kind}`); document.querySelector('a-scene').appendChild(p);} },
-      gameOver(){ this.state='gameover'; this.alive=false; document.getElementById('hud2d').style.display='none'; const fs=document.getElementById('finalScore'); fs.textContent=`Score ${this.score} • Wave ${this.wave}`; document.getElementById('gameover').style.display='grid'; }
-    };
-
-    // ===== powerups =====
-    AFRAME.registerComponent('powerup',{
-      schema:{type:{default:'maxammo'}},
-      tick(time,dt){
-        const r=this.el.getAttribute('rotation');
-        this.el.setAttribute('rotation',`${r.x} ${r.y+60*dt/1000} ${r.z}`);
-        const player=document.querySelector('#rig').object3D.position; const me=this.el.object3D.position;
-        if(me.distanceTo(player)<1.0){
-          if(this.data.type==='maxammo'){
-            const gun=document.querySelector('#rightHand').components.gun; gun.res=120; gun.mag=gun.maxMag; gun.uiUpdate(); Game.powerups.maxammo=true; setTimeout(()=>{Game.powerups.maxammo=false; Game.updateHud();},5000);
-          } else { Game.powerups.instakill=true; Game.updateHud(); setTimeout(()=>{Game.powerups.instakill=false; Game.updateHud();},7000); }
-          this.el.remove();
+    function monitorPerformance() {
+      const now = performance.now();
+      frameCount++;
+      
+      if (now - lastFrame >= 1000) {
+        fps = Math.round((frameCount * 1000) / (now - lastFrame));
+        frameCount = 0;
+        lastFrame = now;
+        
+        // Adjust quality based on performance
+        if (fps < 30) {
+          console.warn('Low FPS detected:', fps);
+          // Could implement quality reduction here
         }
       }
+      
+      requestAnimationFrame(monitorPerformance);
+    }
+    
+    monitorPerformance();
+
+    // Error handling
+    window.addEventListener('error', (event) => {
+      console.error('Game error:', event.error);
     });
 
-    // ===== bootstrap =====
-    AFRAME.registerComponent('game-manager',{ init(){ Game.init(); }});
+    // WebXR compatibility check
+    if (navigator.xr) {
+      navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+        if (!supported) {
+          console.warn('VR not supported on this device');
+          document.querySelector('.subtitle').textContent += ' (Desktop Mode)';
+        }
+      });
+    } else {
+      console.warn('WebXR not available');
+      document.querySelector('.subtitle').textContent += ' (Desktop Mode)';
+    }
   </script>
 </body>
 </html>
