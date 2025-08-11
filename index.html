@@ -9,25 +9,25 @@
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.7.0/dist/aframe-extras.min.js"></script>
   
-  <!-- Enhanced Styles -->
-  <link rel="stylesheet" href="styles.css">
-  
-  <!-- Game Components -->
-  <script src="components/zombie.js"></script>
-  <script src="components/gun.js"></script>
-  <script src="components/controls.js"></script>
-  <script src="components/lighting.js"></script>
-  <script src="components/environment.js"></script>
-  <script src="components/game-manager.js"></script>
+  <style>
+    html, body { height: 100%; margin: 0; background: linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 100%); font-family: 'Segoe UI', sans-serif; }
+    
+    .ui { position: fixed; inset: 0; display: grid; place-items: center; font-family: 'Orbitron', 'Segoe UI', monospace; background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.8) 100%); backdrop-filter: blur(5px); }
+    .panel { background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9)); border: 2px solid rgba(148, 163, 184, 0.3); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1); padding: 32px 40px; border-radius: 20px; color: #f1f5f9; min-width: 400px; max-width: 90vw; text-align: center; backdrop-filter: blur(10px); }
+    .title { font-weight: 900; font-size: 36px; letter-spacing: 2px; margin-bottom: 12px; background: linear-gradient(135deg, #ef4444, #dc2626, #b91c1c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 20px rgba(239, 68, 68, 0.5); text-transform: uppercase; }
+    .subtitle { opacity: 0.9; margin-bottom: 24px; font-size: 16px; color: #cbd5e1; font-weight: 300; }
+    .btn { display: inline-block; padding: 15px 25px; border-radius: 15px; border: 2px solid rgba(239, 68, 68, 0.6); background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.2)); cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; transition: all 0.3s ease; color: #f1f5f9; font-size: 16px; }
+    .btn:hover { background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.4)); box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2); transform: translateY(-2px); }
+    .small { font-size: 13px; color: #94a3b8; margin-top: 20px; line-height: 1.5; }
+    
+    #menu, #gameover { z-index: 10; }
+    #hud2d { position: fixed; left: 20px; right: 20px; bottom: 20px; display: none; justify-content: space-between; gap: 15px; pointer-events: none; z-index: 9; }
+    .hudchip { background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8)); border: 2px solid rgba(148, 163, 184, 0.4); backdrop-filter: blur(10px); padding: 12px 18px; border-radius: 15px; color: #f1f5f9; min-width: 140px; font-weight: 600; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+    
+    #vrRestartBtn { position: fixed; top: 20px; right: 20px; z-index: 8; display: none; padding: 12px 20px; background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3)); border: 2px solid rgba(239, 68, 68, 0.6); border-radius: 12px; color: #f1f5f9; font-weight: 600; cursor: pointer; backdrop-filter: blur(10px); }
+  </style>
 </head>
 <body>
-  <!-- Loading Screen -->
-  <div id="loading" class="loading">
-    <h2>Loading VR Zombie Experience...</h2>
-    <div class="spinner"></div>
-    <p>Initializing weapons, zombies, and environment...</p>
-  </div>
-
   <!-- START MENU -->
   <div id="menu" class="ui">
     <div class="panel">
@@ -76,15 +76,234 @@
   <a-scene 
     id="scene" 
     background="color: #0a0a0a" 
-    fog="type: exponential; density: 0.035; color: #1a1a2e" 
-    renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true; shadowMapType: PCF" 
+    fog="type: exponential; density: 0.015; color: #2a2a3a" 
+    renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true" 
     vr-mode-ui="enabled: true" 
     cursor="rayOrigin: mouse"
-    dynamic-lighting
-    environment-manager
-    lighting-manager>
+    embedded style="height: 100vh; width: 100vw;">
 
-    <!-- ENHANCED PLAYER RIG with VR Controls -->
+    <!-- Much Enhanced Lighting -->
+    <!-- Bright ambient light so you can see everything -->
+    <a-entity light="type: ambient; intensity: 0.8; color: #6b7280"></a-entity>
+    
+    <!-- Main directional light (like sunlight) -->
+    <a-entity id="mainLight" position="10 15 5" light="type: directional; castShadow: true; intensity: 1.5; color: #ffffff; shadowMapWidth: 2048; shadowMapHeight: 2048"></a-entity>
+    
+    <!-- Secondary directional light from opposite side -->
+    <a-entity id="fillLight" position="-8 12 -8" light="type: directional; castShadow: false; intensity: 0.8; color: #b3c6ff"></a-entity>
+    
+    <!-- House interior lights -->
+    <a-entity id="houseLight1" position="0 2.5 -1" light="type: point; intensity: 2.0; distance: 12; decay: 1; color: #ffd700; castShadow: true"></a-entity>
+    <a-entity id="houseLight2" position="-3 2.2 2" light="type: point; intensity: 1.5; distance: 10; decay: 1; color: #ffaa00; castShadow: true"></a-entity>
+    <a-entity id="houseLight3" position="3 2.2 -3" light="type: point; intensity: 1.5; distance: 10; decay: 1; color: #ffaa00; castShadow: true"></a-entity>
+    
+    <!-- Corner spotlights -->
+    <a-entity id="spotLight1" position="5 3 5" light="type: spot; intensity: 2.0; distance: 15; angle: 45; penumbra: 0.2; color: #ffffff; castShadow: true" rotation="-45 -135 0"></a-entity>
+    <a-entity id="spotLight2" position="-5 3 5" light="type: spot; intensity: 2.0; distance: 15; angle: 45; penumbra: 0.2; color: #ffffff; castShadow: true" rotation="-45 135 0"></a-entity>
+    <a-entity id="spotLight3" position="5 3 -5" light="type: spot; intensity: 2.0; distance: 15; angle: 45; penumbra: 0.2; color: #ffffff; castShadow: true" rotation="-45 -45 0"></a-entity>
+    <a-entity id="spotLight4" position="-5 3 -5" light="type: spot; intensity: 2.0; distance: 15; angle: 45; penumbra: 0.2; color: #ffffff; castShadow: true" rotation="-45 45 0"></a-entity>
+    
+    <!-- Emergency/accent lights -->
+    <a-entity id="emergencyLight" position="-4 2.8 2" light="type: spot; intensity: 1.5; distance: 8; angle: 30; color: #ff4444" animation="property: light.intensity; to: 0.5; dur: 1500; direction: alternate; loop: true"></a-entity>
+    <a-entity id="blueLight" position="4 2.8 -2" light="type: spot; intensity: 1.2; distance: 8; angle: 30; color: #4488ff"></a-entity>
+    
+    <!-- Floor lights for better visibility -->
+    <a-entity id="floorLight1" position="0 0.5 0" light="type: point; intensity: 1.0; distance: 8; decay: 2; color: #ffffff"></a-entity>
+    <a-entity id="floorLight2" position="3 0.5 3" light="type: point; intensity: 0.8; distance: 6; decay: 2; color: #ffddaa"></a-entity>
+    <a-entity id="floorLight3" position="-3 0.5 -3" light="type: point; intensity: 0.8; distance: 6; decay: 2; color: #ffddaa"></a-entity>
+
+    <!-- Detailed House Environment -->
+    <a-entity id="house">
+      <!-- Enhanced floor with wood planks -->
+      <a-entity geometry="primitive: box; depth: 12; width: 12; height: 0.2" position="0 -0.1 0" material="color: #3c2415; roughness: 0.8" shadow="receive: true"></a-entity>
+      
+      <!-- Front Wall with Window Openings -->
+      <a-entity geometry="primitive: box; depth: 0.3; width: 3; height: 3" position="-4.5 1.5 -6" material="color: #2a3342; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      <a-entity geometry="primitive: box; depth: 0.3; width: 2; height: 3" position="0 1.5 -6" material="color: #2a3342; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      <a-entity geometry="primitive: box; depth: 0.3; width: 3; height: 3" position="4.5 1.5 -6" material="color: #2a3342; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      <!-- Front wall top sections above windows -->
+      <a-entity geometry="primitive: box; depth: 0.3; width: 2; height: 0.8" position="-3 2.6 -6" material="color: #2a3342; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      <a-entity geometry="primitive: box; depth: 0.3; width: 2; height: 0.8" position="3 2.6 -6" material="color: #2a3342; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      
+      <!-- Back Wall with Window Openings -->
+      <a-entity geometry="primitive: box; depth: 0.3; width: 4; height: 3" position="-4 1.5 6" material="color: #2a3342; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      <a-entity geometry="primitive: box; depth: 0.3; width: 4; height: 3" position="4 1.5 6" material="color: #2a3342; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      <!-- Back wall top sections above windows -->
+      <a-entity geometry="primitive: box; depth: 0.3; width: 1.5; height: 0.8" position="-2 2.6 6" material="color: #2a3342; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      <a-entity geometry="primitive: box; depth: 0.3; width: 1.5; height: 0.8" position="2 2.6 6" material="color: #2a3342; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      
+      <!-- Left Wall with Window Opening -->
+      <a-entity geometry="primitive: box; depth: 8; width: 0.3; height: 3" position="-6 1.5 2" material="color: #263241; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      <a-entity geometry="primitive: box; depth: 4; width: 0.3; height: 3" position="-6 1.5 -4" material="color: #263241; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      <!-- Left wall top section above window -->
+      <a-entity geometry="primitive: box; depth: 1.5; width: 0.3; height: 0.8" position="-6 2.6 -2" material="color: #263241; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      
+      <!-- Right Wall with Window Opening -->
+      <a-entity geometry="primitive: box; depth: 4; width: 0.3; height: 3" position="6 1.5 -2" material="color: #263241; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      <a-entity geometry="primitive: box; depth: 8; width: 0.3; height: 3" position="6 1.5 4" material="color: #263241; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      <!-- Right wall top section above window -->
+      <a-entity geometry="primitive: box; depth: 1.5; width: 0.3; height: 0.8" position="6 2.6 2" material="color: #263241; roughness: 0.9" shadow="cast: true; receive: true"></a-entity>
+      
+      <!-- Ceiling -->
+      <a-entity geometry="primitive: box; width: 12; height: 0.2; depth: 12" position="0 3.1 0" material="color: #1f2937; roughness: 0.8" shadow="receive: true"></a-entity>
+      
+      <!-- Ceiling beams -->
+      <a-entity geometry="primitive: box; width: 12; height: 0.2; depth: 0.3" position="0 2.9 -4" material="color: #4b3f2f; roughness: 0.9" shadow="cast: true"></a-entity>
+      <a-entity geometry="primitive: box; width: 12; height: 0.2; depth: 0.3" position="0 2.9 0" material="color: #4b3f2f; roughness: 0.9" shadow="cast: true"></a-entity>
+      <a-entity geometry="primitive: box; width: 12; height: 0.2; depth: 0.3" position="0 2.9 4" material="color: #4b3f2f; roughness: 0.9" shadow="cast: true"></a-entity>
+      
+      <!-- DETAILED WINDOWS -->
+      
+      <!-- Front Left Window -->
+      <a-entity id="frontLeftWindow" position="-3 1.8 -6">
+        <!-- Window frame -->
+        <a-entity geometry="primitive: box; width: 2.2; height: 1.4; depth: 0.12" material="color: #4a3f35; roughness: 0.8" position="0 0 -0.06"></a-entity>
+        
+        <!-- Window sill -->
+        <a-entity geometry="primitive: box; width: 2.4; height: 0.1; depth: 0.15" material="color: #3d322a; roughness: 0.9" position="0 -0.75 -0.08"></a-entity>
+        
+        <!-- Glass panes (broken) -->
+        <a-entity geometry="primitive: box; width: 0.9; height: 0.6; depth: 0.02" material="color: #87ceeb; opacity: 0.3; transparent: true; roughness: 0.1; metalness: 0.1" position="-0.5 0.2 0"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.7; height: 0.4; depth: 0.02" material="color: #87ceeb; opacity: 0.2; transparent: true; roughness: 0.1; metalness: 0.1" position="0.4 -0.1 0" rotation="0 0 15"></a-entity>
+        
+        <!-- Window cross frame -->
+        <a-entity geometry="primitive: box; width: 2.0; height: 0.05; depth: 0.03" material="color: #4a3f35; roughness: 0.8" position="0 0 0.02"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.05; height: 1.2; depth: 0.03" material="color: #4a3f35; roughness: 0.8" position="0 0 0.02"></a-entity>
+        
+        <!-- Broken boards -->
+        <a-entity geometry="primitive: box; width: 1.8; height: 0.12; depth: 0.04" material="color: #5d4e37; roughness: 0.9" position="-0.1 0.3 0.05" rotation="0 0 -8"></a-entity>
+        <a-entity geometry="primitive: box; width: 1.2; height: 0.08; depth: 0.04" material="color: #6b5b4a; roughness: 0.9" position="0.3 -0.2 0.05" rotation="0 0 25"></a-entity>
+      </a-entity>
+      
+      <!-- Front Right Window -->
+      <a-entity id="frontRightWindow" position="3 1.8 -6">
+        <!-- Window frame -->
+        <a-entity geometry="primitive: box; width: 2.2; height: 1.4; depth: 0.12" material="color: #4a3f35; roughness: 0.8" position="0 0 -0.06"></a-entity>
+        
+        <!-- Window sill -->
+        <a-entity geometry="primitive: box; width: 2.4; height: 0.1; depth: 0.15" material="color: #3d322a; roughness: 0.9" position="0 -0.75 -0.08"></a-entity>
+        
+        <!-- Glass shards -->
+        <a-entity geometry="primitive: box; width: 0.6; height: 0.8; depth: 0.02" material="color: #87ceeb; opacity: 0.25; transparent: true; roughness: 0.1; metalness: 0.1" position="-0.6 0 0" rotation="0 0 -12"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.4; height: 0.3; depth: 0.02" material="color: #87ceeb; opacity: 0.3; transparent: true; roughness: 0.1; metalness: 0.1" position="0.5 0.4 0" rotation="0 0 45"></a-entity>
+        
+        <!-- Window cross frame -->
+        <a-entity geometry="primitive: box; width: 2.0; height: 0.05; depth: 0.03" material="color: #4a3f35; roughness: 0.8" position="0 0 0.02"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.05; height: 1.2; depth: 0.03" material="color: #4a3f35; roughness: 0.8" position="0 0 0.02"></a-entity>
+        
+        <!-- Hanging boards -->
+        <a-entity geometry="primitive: box; width: 1.6; height: 0.1; depth: 0.04" material="color: #5d4e37; roughness: 0.9" position="0.2 0.1 0.05" rotation="0 0 12"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.8; height: 0.06; depth: 0.04" material="color: #6b5b4a; roughness: 0.9" position="-0.4 -0.3 0.05" rotation="0 0 -35"></a-entity>
+      </a-entity>
+      
+      <!-- Left Side Window -->
+      <a-entity id="leftSideWindow" position="-6 1.8 -2">
+        <!-- Window frame -->
+        <a-entity geometry="primitive: box; width: 0.12; height: 1.4; depth: 1.8" material="color: #4a3f35; roughness: 0.8" position="-0.06 0 0"></a-entity>
+        
+        <!-- Window sill -->
+        <a-entity geometry="primitive: box; width: 0.15; height: 0.1; depth: 2.0" material="color: #3d322a; roughness: 0.9" position="-0.08 -0.75 0"></a-entity>
+        
+        <!-- Remaining glass -->
+        <a-entity geometry="primitive: box; width: 0.02; height: 0.5; depth: 0.7" material="color: #87ceeb; opacity: 0.3; transparent: true; roughness: 0.1; metalness: 0.1" position="0 0.2 -0.4"></a-entity>
+        
+        <!-- Window cross frame -->
+        <a-entity geometry="primitive: box; width: 0.03; height: 0.05; depth: 1.6" material="color: #4a3f35; roughness: 0.8" position="0.02 0 0"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.03; height: 1.2; depth: 0.05" material="color: #4a3f35; roughness: 0.8" position="0.02 0 0"></a-entity>
+        
+        <!-- Boarded up sections -->
+        <a-entity geometry="primitive: box; width: 0.04; height: 0.12; depth: 1.4" material="color: #5d4e37; roughness: 0.9" position="0.05 0.1 0.1" rotation="0 0 -5"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.04; height: 0.08; depth: 1.0" material="color: #6b5b4a; roughness: 0.9" position="0.05 -0.3 -0.1" rotation="0 0 8"></a-entity>
+      </a-entity>
+      
+      <!-- Right Side Window -->
+      <a-entity id="rightSideWindow" position="6 1.8 2">
+        <!-- Window frame -->
+        <a-entity geometry="primitive: box; width: 0.12; height: 1.4; depth: 1.8" material="color: #4a3f35; roughness: 0.8" position="0.06 0 0"></a-entity>
+        
+        <!-- Window sill -->
+        <a-entity geometry="primitive: box; width: 0.15; height: 0.1; depth: 2.0" material="color: #3d322a; roughness: 0.9" position="0.08 -0.75 0"></a-entity>
+        
+        <!-- Cracked glass -->
+        <a-entity geometry="primitive: box; width: 0.02; height: 0.6; depth: 0.8" material="color: #87ceeb; opacity: 0.2; transparent: true; roughness: 0.1; metalness: 0.1" position="0 0 0.3" rotation="0 0 -8"></a-entity>
+        
+        <!-- Window cross frame -->
+        <a-entity geometry="primitive: box; width: 0.03; height: 0.05; depth: 1.6" material="color: #4a3f35; roughness: 0.8" position="-0.02 0 0"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.03; height: 1.2; depth: 0.05" material="color: #4a3f35; roughness: 0.8" position="-0.02 0 0"></a-entity>
+        
+        <!-- Boards covering damage -->
+        <a-entity geometry="primitive: box; width: 0.04; height: 0.1; depth: 1.2" material="color: #5d4e37; roughness: 0.9" position="-0.05 0.2 -0.2" rotation="0 0 3"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.04; height: 0.12; depth: 0.9" material="color: #6b5b4a; roughness: 0.9" position="-0.05 -0.2 0.4" rotation="0 0 -12"></a-entity>
+      </a-entity>
+      
+      <!-- Back Left Window -->
+      <a-entity id="backLeftWindow" position="-2 1.8 6">
+        <!-- Window frame -->
+        <a-entity geometry="primitive: box; width: 1.8; height: 1.4; depth: 0.12" material="color: #4a3f35; roughness: 0.8" position="0 0 0.06"></a-entity>
+        
+        <!-- Window sill -->
+        <a-entity geometry="primitive: box; width: 2.0; height: 0.1; depth: 0.15" material="color: #3d322a; roughness: 0.9" position="0 -0.75 0.08"></a-entity>
+        
+        <!-- Mostly broken glass -->
+        <a-entity geometry="primitive: box; width: 0.3; height: 0.4; depth: 0.02" material="color: #87ceeb; opacity: 0.2; transparent: true; roughness: 0.1; metalness: 0.1" position="0.5 0.3 0" rotation="0 0 22"></a-entity>
+        
+        <!-- Window cross frame -->
+        <a-entity geometry="primitive: box; width: 1.6; height: 0.05; depth: 0.03" material="color: #4a3f35; roughness: 0.8" position="0 0 -0.02"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.05; height: 1.2; depth: 0.03" material="color: #4a3f35; roughness: 0.8" position="0 0 -0.02"></a-entity>
+        
+        <!-- Heavy boarding -->
+        <a-entity geometry="primitive: box; width: 1.4; height: 0.15; depth: 0.04" material="color: #5d4e37; roughness: 0.9" position="-0.1 0.1 -0.05" rotation="0 0 -3"></a-entity>
+        <a-entity geometry="primitive: box; width: 1.2; height: 0.12; depth: 0.04" material="color: #6b5b4a; roughness: 0.9" position="0.1 -0.25 -0.05" rotation="0 0 7"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.8; height: 0.1; depth: 0.04" material="color: #5d4e37; roughness: 0.9" position="-0.3 0.4 -0.05" rotation="0 0 18"></a-entity>
+      </a-entity>
+      
+      <!-- Back Right Window -->
+      <a-entity id="backRightWindow" position="2 1.8 6">
+        <!-- Window frame -->
+        <a-entity geometry="primitive: box; width: 1.8; height: 1.4; depth: 0.12" material="color: #4a3f35; roughness: 0.8" position="0 0 0.06"></a-entity>
+        
+        <!-- Window sill -->
+        <a-entity geometry="primitive: box; width: 2.0; height: 0.1; depth: 0.15" material="color: #3d322a; roughness: 0.9" position="0 -0.75 0.08"></a-entity>
+        
+        <!-- Some remaining glass -->
+        <a-entity geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.02" material="color: #87ceeb; opacity: 0.25; transparent: true; roughness: 0.1; metalness: 0.1" position="-0.4 0.1 0" rotation="0 0 -15"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.3; height: 0.3; depth: 0.02" material="color: #87ceeb; opacity: 0.3; transparent: true; roughness: 0.1; metalness: 0.1" position="0.6 -0.2 0" rotation="0 0 30"></a-entity>
+        
+        <!-- Window cross frame -->
+        <a-entity geometry="primitive: box; width: 1.6; height: 0.05; depth: 0.03" material="color: #4a3f35; roughness: 0.8" position="0 0 -0.02"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.05; height: 1.2; depth: 0.03" material="color: #4a3f35; roughness: 0.8" position="0 0 -0.02"></a-entity>
+        
+        <!-- Partial boarding -->
+        <a-entity geometry="primitive: box; width: 1.0; height: 0.12; depth: 0.04" material="color: #5d4e37; roughness: 0.9" position="0.2 0.3 -0.05" rotation="0 0 -8"></a-entity>
+        <a-entity geometry="primitive: box; width: 1.3; height: 0.1; depth: 0.04" material="color: #6b5b4a; roughness: 0.9" position="-0.1 -0.3 -0.05" rotation="0 0 12"></a-entity>
+      </a-entity>
+      
+      <!-- Furniture -->
+      <!-- Old table -->
+      <a-entity position="-3 0.4 -2">
+        <a-entity geometry="primitive: box; width: 2.0; height: 0.1; depth: 1.0" material="color: #5d4e37; roughness: 0.8" position="0 0.35 0" shadow="cast: true; receive: true"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.1; height: 0.7; depth: 0.1" material="color: #4a3f35; roughness: 0.9" position="-0.8 0 -0.4"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.1; height: 0.7; depth: 0.1" material="color: #4a3f35; roughness: 0.9" position="0.8 0 -0.4"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.1; height: 0.4; depth: 0.1" material="color: #4a3f35; roughness: 0.9" position="-0.8 -0.15 0.4" rotation="0 0 -15"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.1; height: 0.7; depth: 0.1" material="color: #4a3f35; roughness: 0.9" position="0.8 0 0.4"></a-entity>
+      </a-entity>
+      
+      <!-- Broken chair -->
+      <a-entity position="2.5 0.2 1" rotation="0 0 -75">
+        <a-entity geometry="primitive: box; width: 0.5; height: 0.05; depth: 0.5" material="color: #4a3f35; roughness: 0.8"></a-entity>
+        <a-entity geometry="primitive: box; width: 0.5; height: 0.6; depth: 0.05" material="color: #4a3f35; roughness: 0.8" position="0 0.3 -0.225"></a-entity>
+      </a-entity>
+      
+      <!-- Barrels -->
+      <a-entity position="4.5 0.4 -4.5">
+        <a-entity geometry="primitive: cylinder; radius: 0.3; height: 0.8" material="color: #4b0000; roughness: 0.8; metalness: 0.2" shadow="cast: true; receive: true"></a-entity>
+        <a-entity geometry="primitive: torus; radius: 0.31; radiusTubular: 0.02" material="color: #2c2c2c; metalness: 0.8; roughness: 0.3" position="0 -0.3 0" rotation="90 0 0"></a-entity>
+        <a-entity geometry="primitive: torus; radius: 0.31; radiusTubular: 0.02" material="color: #2c2c2c; metalness: 0.8; roughness: 0.3" position="0 0 0" rotation="90 0 0"></a-entity>
+        <a-entity geometry="primitive: torus; radius: 0.31; radiusTubular: 0.02" material="color: #2c2c2c; metalness: 0.8; roughness: 0.3" position="0 0.3 0" rotation="90 0 0"></a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- ENHANCED PLAYER RIG -->
     <a-entity 
       id="rig" 
       movement-controls="fly: false; speed: 0.18; acceleration: 60" 
@@ -104,101 +323,675 @@
       <a-entity 
         id="rightHand" 
         hand-controls="hand: right; handModelStyle: lowPoly; color: #15803d" 
-        gun>
+        enhanced-gun>
       </a-entity>
     </a-entity>
 
-    <!-- DETAILED ENVIRONMENT (replaced by environment component) -->
-    <a-entity id="house" detailed-environment></a-entity>
-
     <!-- GAME MANAGER -->
-    <a-entity id="game" game-manager></a-entity>
+    <a-entity id="game" enhanced-game-manager></a-entity>
 
   </a-scene>
 
   <script>
-    // Hide loading screen when everything is ready
-    document.addEventListener('DOMContentLoaded', () => {
-      const scene = document.querySelector('a-scene');
+    console.log('Initializing Enhanced VR Zombie Game...');
+
+    // Enhanced Realistic Zombie Component
+    AFRAME.registerComponent('enhanced-zombie', {
+      schema: {
+        speed: { default: 0.6 },
+        hp: { default: 5 },
+        zombieType: { default: 'male' }
+      },
       
-      scene.addEventListener('loaded', () => {
-        // Small delay to ensure all components are initialized
-        setTimeout(() => {
-          const loading = document.getElementById('loading');
-          if (loading) {
-            loading.style.opacity = '0';
-            setTimeout(() => {
-              loading.style.display = 'none';
-            }, 500);
-          }
-        }, 1000);
-      });
-    });
-
-    // Enhanced VR session management
-    document.addEventListener('enter-vr', () => {
-      console.log('Entered VR mode');
-      // Hide 2D UI elements that might interfere
-      const menu = document.getElementById('menu');
-      const gameover = document.getElementById('gameover');
-      
-      if (menu && menu.style.display !== 'none') {
-        // Auto-start game when entering VR
-        setTimeout(() => {
-          if (Game && Game.state === 'menu') {
-            Game.startGame();
-          }
-        }, 1000);
-      }
-    });
-
-    document.addEventListener('exit-vr', () => {
-      console.log('Exited VR mode');
-    });
-
-    // Performance monitoring
-    let lastFrame = performance.now();
-    let frameCount = 0;
-    let fps = 60;
-
-    function monitorPerformance() {
-      const now = performance.now();
-      frameCount++;
-      
-      if (now - lastFrame >= 1000) {
-        fps = Math.round((frameCount * 1000) / (now - lastFrame));
-        frameCount = 0;
-        lastFrame = now;
+      init() {
+        this.player = document.querySelector('#player').object3D;
+        this.tmp = new THREE.Vector3();
+        this.dead = false;
+        this.t = 0;
+        this.el.classList.add('enemy');
         
-        // Adjust quality based on performance
-        if (fps < 30) {
-          console.warn('Low FPS detected:', fps);
-          // Could implement quality reduction here
+        this.createDetailedZombie();
+      },
+      
+      createDetailedZombie() {
+        const variations = this.getZombieVariations();
+        
+        // Create detailed zombie parts
+        this.createZombieHead(variations);
+        this.createZombieTorso(variations);
+        this.createZombieArms(variations);
+        this.createZombieLegs(variations);
+      },
+      
+      getZombieVariations() {
+        const skinColors = ['#d4a574', '#c49969', '#b8865d', '#a67c52'];
+        const shirtColors = ['#2c3e50', '#34495e', '#7f8c8d', '#8b4513', '#e74c3c'];
+        const pantsColors = ['#2c3e50', '#34495e', '#8b4513', '#654321'];
+        
+        return {
+          skinColor: skinColors[Math.floor(Math.random() * skinColors.length)],
+          shirtColor: shirtColors[Math.floor(Math.random() * shirtColors.length)],
+          pantsColor: pantsColors[Math.floor(Math.random() * pantsColors.length)],
+          height: 1.7 + Math.random() * 0.3,
+          build: 0.8 + Math.random() * 0.4
+        };
+      },
+      
+      createZombieHead(variations) {
+        // Head
+        const head = document.createElement('a-entity');
+        head.setAttribute('geometry', 'primitive: box; width: 0.35; height: 0.4; depth: 0.3');
+        head.setAttribute('material', `color: ${variations.skinColor}; roughness: 0.8`);
+        head.setAttribute('position', '0 1.85 0');
+        this.el.appendChild(head);
+        this.headEl = head;
+        
+        // Glowing red eyes
+        const leftEye = document.createElement('a-entity');
+        leftEye.setAttribute('geometry', 'primitive: sphere; radius: 0.04');
+        leftEye.setAttribute('material', 'color: #ff0000; emissive: #ff0000; emissiveIntensity: 0.5');
+        leftEye.setAttribute('position', '-0.08 0.05 0.16');
+        head.appendChild(leftEye);
+        
+        const rightEye = document.createElement('a-entity');
+        rightEye.setAttribute('geometry', 'primitive: sphere; radius: 0.04');
+        rightEye.setAttribute('material', 'color: #ff0000; emissive: #ff0000; emissiveIntensity: 0.5');
+        rightEye.setAttribute('position', '0.08 0.05 0.16');
+        head.appendChild(rightEye);
+      },
+      
+      createZombieTorso(variations) {
+        // Torso
+        const torso = document.createElement('a-entity');
+        torso.setAttribute('geometry', `primitive: box; width: ${0.6 * variations.build}; height: 0.8; depth: 0.3`);
+        torso.setAttribute('material', `color: ${variations.shirtColor}; roughness: 0.7`);
+        torso.setAttribute('position', '0 1.2 0');
+        this.el.appendChild(torso);
+        this.torso = torso;
+      },
+      
+      createZombieArms(variations) {
+        // Left shoulder joint (pivot point)
+        const leftShoulder = document.createElement('a-entity');
+        leftShoulder.setAttribute('position', `${-0.4 * variations.build} 1.5 0`);
+        this.el.appendChild(leftShoulder);
+        
+        // Left arm (attached to shoulder, positioned relative to pivot)
+        const leftArm = document.createElement('a-entity');
+        leftArm.setAttribute('geometry', 'primitive: box; width: 0.15; height: 0.7; depth: 0.15');
+        leftArm.setAttribute('material', `color: ${variations.skinColor}; roughness: 0.8`);
+        leftArm.setAttribute('position', '0 -0.35 0'); // Arm hangs down from shoulder
+        leftShoulder.appendChild(leftArm);
+        this.armL = leftShoulder; // Reference the shoulder for rotation
+        
+        // Right shoulder joint (pivot point)
+        const rightShoulder = document.createElement('a-entity');
+        rightShoulder.setAttribute('position', `${0.4 * variations.build} 1.5 0`);
+        this.el.appendChild(rightShoulder);
+        
+        // Right arm (attached to shoulder, positioned relative to pivot)
+        const rightArm = document.createElement('a-entity');
+        rightArm.setAttribute('geometry', 'primitive: box; width: 0.15; height: 0.7; depth: 0.15');
+        rightArm.setAttribute('material', `color: ${variations.skinColor}; roughness: 0.8`);
+        rightArm.setAttribute('position', '0 -0.35 0'); // Arm hangs down from shoulder
+        rightShoulder.appendChild(rightArm);
+        this.armR = rightShoulder; // Reference the shoulder for rotation
+      },
+      
+      createZombieLegs(variations) {
+        // Left leg
+        const leftLeg = document.createElement('a-entity');
+        leftLeg.setAttribute('geometry', 'primitive: box; width: 0.18; height: 0.8; depth: 0.18');
+        leftLeg.setAttribute('material', `color: ${variations.pantsColor}; roughness: 0.8`);
+        leftLeg.setAttribute('position', '-0.15 0.4 0');
+        this.el.appendChild(leftLeg);
+        this.legL = leftLeg;
+        
+        // Right leg
+        const rightLeg = document.createElement('a-entity');
+        rightLeg.setAttribute('geometry', 'primitive: box; width: 0.18; height: 0.8; depth: 0.18');
+        rightLeg.setAttribute('material', `color: ${variations.pantsColor}; roughness: 0.8`);
+        rightLeg.setAttribute('position', '0.15 0.4 0');
+        this.el.appendChild(rightLeg);
+        this.legR = rightLeg;
+      },
+      
+      takeDamage(damage = 1, isHeadshot = false) {
+        if (this.dead) return;
+        
+        const actualDamage = isHeadshot ? damage * 2 : damage;
+        this.data.hp -= actualDamage;
+        
+        if (this.data.hp <= 0) {
+          this.dead = true;
+          this.die();
+        }
+      },
+      
+      die() {
+        this.el.setAttribute('animation', 'property: rotation; to: 90 0 0; dur: 800; easing: easeOutQuad');
+        this.el.emit('zombie-killed');
+        setTimeout(() => this.el.remove(), 2000);
+      },
+      
+      tick(time, deltaTime) {
+        if (this.dead) return;
+        
+        this.t += deltaTime / 1000;
+        const speed = this.data.speed * (deltaTime / 1000);
+        
+        // Move towards player
+        const playerPos = this.player.getWorldPosition(this.tmp);
+        const myPos = this.el.object3D.position;
+        const direction = this.tmp.set(playerPos.x - myPos.x, 0, playerPos.z - myPos.z);
+        const distance = direction.length();
+        
+        if (distance > 0.001) {
+          direction.normalize();
+          myPos.addScaledVector(direction, speed);
+          
+          const yaw = Math.atan2(direction.x, direction.z) * THREE.MathUtils.RAD2DEG;
+          this.el.setAttribute('rotation', `0 ${yaw} 0`);
+        }
+        
+        // Walking animation
+        const walkSpeed = 4;
+        const armSwing = 0.5;
+        const legSwing = 0.7;
+        
+        if (this.armL && this.armR) {
+          this.armL.object3D.rotation.z = armSwing * Math.sin(this.t * walkSpeed);
+          this.armR.object3D.rotation.z = -armSwing * Math.sin(this.t * walkSpeed);
+        }
+        
+        if (this.legL && this.legR) {
+          this.legL.object3D.rotation.x = legSwing * Math.sin(this.t * walkSpeed + Math.PI);
+          this.legR.object3D.rotation.x = legSwing * Math.sin(this.t * walkSpeed);
+        }
+        
+        // Attack player if close
+        if (distance < 0.8) {
+          this.el.emit('zombie-hit-player');
         }
       }
-      
-      requestAnimationFrame(monitorPerformance);
-    }
-    
-    monitorPerformance();
-
-    // Error handling
-    window.addEventListener('error', (event) => {
-      console.error('Game error:', event.error);
     });
 
-    // WebXR compatibility check
-    if (navigator.xr) {
-      navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
-        if (!supported) {
-          console.warn('VR not supported on this device');
-          document.querySelector('.subtitle').textContent += ' (Desktop Mode)';
+    // Enhanced Gun Component
+    AFRAME.registerComponent('enhanced-gun', {
+      init() {
+        this.cooldown = 0;
+        this.magazine = 15;
+        this.reserve = 90;
+        this.maxMag = 15;
+        this.canShoot = true;
+        this.tmp = new THREE.Vector3();
+        this.raycaster = new THREE.Raycaster();
+        this.enemies = [];
+        
+        this.createDetailedGun();
+        this.updateUI();
+        
+        this.el.addEventListener('triggerdown', () => this.shoot());
+        this.el.addEventListener('abuttondown', () => this.reload());
+        
+        setInterval(() => {
+          this.enemies = [...document.querySelectorAll('.enemy')].map(e => e.object3D);
+        }, 250);
+      },
+      
+      createDetailedGun() {
+        const gunContainer = document.createElement('a-entity');
+        gunContainer.setAttribute('position', '0 -0.1 -0.15');
+        
+        // Gun barrel
+        const barrel = document.createElement('a-entity');
+        barrel.setAttribute('geometry', 'primitive: cylinder; radius: 0.02; height: 0.35');
+        barrel.setAttribute('material', 'color: #2c2c2c; metalness: 0.8; roughness: 0.2');
+        barrel.setAttribute('position', '0 0 -0.15');
+        barrel.setAttribute('rotation', '90 0 0');
+        gunContainer.appendChild(barrel);
+        
+        // Gun body
+        const receiver = document.createElement('a-entity');
+        receiver.setAttribute('geometry', 'primitive: box; width: 0.08; height: 0.12; depth: 0.25');
+        receiver.setAttribute('material', 'color: #3a3a3a; metalness: 0.7; roughness: 0.3');
+        receiver.setAttribute('position', '0 0.01 -0.05');
+        gunContainer.appendChild(receiver);
+        
+        // Magazine
+        const magazine = document.createElement('a-entity');
+        magazine.setAttribute('geometry', 'primitive: box; width: 0.06; height: 0.15; depth: 0.08');
+        magazine.setAttribute('material', 'color: #2a2a2a; metalness: 0.7; roughness: 0.3');
+        magazine.setAttribute('position', '0 -0.08 0.05');
+        gunContainer.appendChild(magazine);
+        
+        this.el.appendChild(gunContainer);
+        this.gunModel = gunContainer;
+      },
+      
+      updateUI() {
+        document.getElementById('hudAmmo').textContent = `Ammo ${this.magazine}/${this.reserve}`;
+        document.getElementById('hudHP').textContent = `HP ${Game.hp}`;
+      },
+      
+      shoot() {
+        if (!this.canShoot) return;
+        if (this.magazine <= 0) return;
+        
+        this.canShoot = false;
+        this.magazine--;
+        this.updateUI();
+        
+        // Gun recoil
+        this.animateRecoil();
+        
+        // Raycasting
+        const origin = new THREE.Vector3();
+        const direction = new THREE.Vector3(0, 0, -1);
+        
+        this.el.object3D.getWorldPosition(origin);
+        this.el.object3D.getWorldDirection(direction);
+        direction.normalize();
+        
+        this.raycaster.set(origin, direction);
+        const hits = this.raycaster.intersectObjects(this.enemies, true);
+        
+        if (hits.length > 0) {
+          let targetObject = hits[0].object;
+          while (targetObject && !targetObject.el) {
+            targetObject = targetObject.parent;
+          }
+          
+          if (targetObject && targetObject.el && targetObject.el.components['enhanced-zombie']) {
+            const zombie = targetObject.el.components['enhanced-zombie'];
+            const isHeadshot = targetObject === zombie.headEl?.object3D;
+            
+            zombie.takeDamage(1, isHeadshot);
+            Game.addScore(isHeadshot ? 25 : 15);
+          }
         }
-      });
-    } else {
-      console.warn('WebXR not available');
-      document.querySelector('.subtitle').textContent += ' (Desktop Mode)';
-    }
+        
+        setTimeout(() => {
+          this.canShoot = true;
+        }, 150);
+      },
+      
+      animateRecoil() {
+        const originalPos = this.gunModel.getAttribute('position');
+        this.gunModel.setAttribute('animation', 'property: position; to: 0 -0.1 -0.1; dur: 50');
+        setTimeout(() => {
+          this.gunModel.setAttribute('animation', `property: position; to: ${originalPos.x} ${originalPos.y} ${originalPos.z}; dur: 100`);
+        }, 50);
+      },
+      
+      reload() {
+        const needed = this.maxMag - this.magazine;
+        if (needed <= 0 || this.reserve <= 0) return;
+        
+        const ammoToTake = Math.min(needed, this.reserve);
+        this.magazine += ammoToTake;
+        this.reserve -= ammoToTake;
+        this.updateUI();
+      }
+    });
+
+    // VR Controls Component
+    AFRAME.registerComponent('vr-controls', {
+      init() {
+        this.rig = this.el;
+        this.camera = this.rig.querySelector('#player');
+        this.moveVector = new THREE.Vector3();
+        this.isSprinting = false;
+        this.baseSpeed = 0.18;
+        
+        setTimeout(() => {
+          this.setupControllers();
+        }, 1000);
+      },
+      
+      setupControllers() {
+        const leftController = document.querySelector('#leftHand');
+        const rightController = document.querySelector('#rightHand');
+        
+        if (leftController) {
+          leftController.addEventListener('thumbstickmoved', (evt) => {
+            this.handleMovement(evt.detail);
+          });
+          
+          leftController.addEventListener('thumbstickdown', () => {
+            this.isSprinting = !this.isSprinting;
+          });
+          
+          leftController.addEventListener('ybuttondown', () => {
+            if (Game.state === 'gameover') {
+              location.reload();
+            }
+          });
+        }
+        
+        if (rightController) {
+          rightController.addEventListener('thumbstickmoved', (evt) => {
+            this.handleTurning(evt.detail);
+          });
+        }
+      },
+      
+      handleMovement(detail) {
+        const { x, y } = detail;
+        const threshold = 0.1;
+        
+        if (Math.abs(x) < threshold && Math.abs(y) < threshold) {
+          this.moveVector.set(0, 0, 0);
+          return;
+        }
+        
+        const cameraRotation = this.camera.object3D.rotation.y;
+        const speed = this.isSprinting ? this.baseSpeed * 2 : this.baseSpeed;
+        
+        const forward = -y * speed;
+        const strafe = x * speed;
+        
+        this.moveVector.set(
+          strafe * Math.cos(cameraRotation) - forward * Math.sin(cameraRotation),
+          0,
+          strafe * Math.sin(cameraRotation) + forward * Math.cos(cameraRotation)
+        );
+      },
+      
+      handleTurning(detail) {
+        const { x } = detail;
+        const threshold = 0.2;
+        const turnSpeed = 2.0;
+        
+        if (Math.abs(x) > threshold) {
+          const currentRotation = this.rig.getAttribute('rotation');
+          const newY = currentRotation.y + (x * turnSpeed);
+          this.rig.setAttribute('rotation', `${currentRotation.x} ${newY} ${currentRotation.z}`);
+        }
+      },
+      
+      tick(time, deltaTime) {
+        if (this.moveVector.length() > 0) {
+          const currentPos = this.rig.getAttribute('position');
+          const newPos = {
+            x: currentPos.x + this.moveVector.x,
+            y: currentPos.y,
+            z: currentPos.z + this.moveVector.z
+          };
+          
+          // Boundary checking
+          newPos.x = Math.max(-5.5, Math.min(5.5, newPos.x));
+          newPos.z = Math.max(-5.5, Math.min(5.5, newPos.z));
+          
+          this.rig.setAttribute('position', newPos);
+        }
+      }
+    });
+
+    // Enhanced Game Manager
+    const Game = {
+      state: 'menu',
+      wave: 1,
+      score: 0,
+      hp: 100,
+      alive: true,
+      enemiesAlive: 0,
+      
+      init() {
+        console.log('Game Manager initializing...');
+        this.setupEventListeners();
+        this.updateHUD();
+      },
+      
+      setupEventListeners() {
+        document.getElementById('startBtn').onclick = () => this.startGame();
+        document.getElementById('retryBtn').onclick = () => location.reload();
+        
+        const rig = document.getElementById('rig');
+        if (rig) {
+          const quickStart = () => {
+            if (this.state === 'menu') this.startGame();
+          };
+          rig.addEventListener('abuttondown', quickStart, { once: true });
+          rig.addEventListener('triggerdown', quickStart, { once: true });
+        }
+      },
+      
+      startGame() {
+        if (this.state !== 'menu') return;
+        
+        console.log('Starting enhanced game...');
+        this.state = 'playing';
+        this.wave = 1;
+        this.score = 0;
+        this.hp = 100;
+        this.alive = true;
+        this.enemiesAlive = 0;
+        
+        document.getElementById('menu').style.display = 'none';
+        document.getElementById('hud2d').style.display = 'flex';
+        this.updateHUD();
+        this.startWave();
+      },
+      
+      startWave() {
+        if (this.state !== 'playing') return;
+        
+        console.log(`Starting wave ${this.wave}`);
+        const count = Math.min(4 + (this.wave - 1) * 2, 30);
+        const baseSpeed = 0.5 + (this.wave - 1) * 0.05;
+        let spawned = 0;
+        
+        const spawn = () => {
+          if (spawned >= count || this.state !== 'playing') return;
+          
+          const zombie = document.createElement('a-entity');
+          zombie.setAttribute('enhanced-zombie', `speed: ${baseSpeed + Math.random() * 0.2}; hp: ${3 + this.wave}`);
+          zombie.setAttribute('shadow', 'cast: true');
+          
+          // Define entry points: doors and windows
+          const entryPoints = [
+            // Main door (front center)
+            { pos: [0, 0, -7], type: 'door', name: 'main door' },
+            
+            // Windows (front wall)
+            { pos: [-3, 0, -6.5], type: 'window', name: 'left window' },
+            { pos: [3, 0, -6.5], type: 'window', name: 'right window' },
+            
+            // Side windows
+            { pos: [-6.5, 0, -2], type: 'window', name: 'left side window' },
+            { pos: [6.5, 0, 2], type: 'window', name: 'right side window' },
+            
+            // Back wall entry points
+            { pos: [-2, 0, 6.5], type: 'window', name: 'back left window' },
+            { pos: [2, 0, 6.5], type: 'window', name: 'back right window' },
+            
+            // Roof/ceiling breach points (more dramatic)
+            { pos: [-1, 3.5, -2], type: 'ceiling', name: 'ceiling breach' },
+            { pos: [2, 3.5, 1], type: 'ceiling', name: 'roof hole' },
+          ];
+          
+          // Choose random entry point
+          const entryPoint = entryPoints[Math.floor(Math.random() * entryPoints.length)];
+          const [x, y, z] = entryPoint.pos;
+          
+          // Position zombie at entry point
+          zombie.setAttribute('position', `${x} ${y} ${z}`);
+          
+          // Add entry animation based on type
+          this.animateZombieEntry(zombie, entryPoint);
+          
+          zombie.addEventListener('zombie-killed', () => {
+            this.enemiesAlive--;
+            this.updateHUD();
+            
+            if (this.enemiesAlive <= 0 && spawned >= count) {
+              setTimeout(() => {
+                this.wave++;
+                this.updateHUD();
+                this.startWave();
+              }, 2000);
+            }
+          });
+          
+          zombie.addEventListener('zombie-hit-player', () => {
+            if (!this.alive) return;
+            this.hp -= 8;
+            if (this.hp < 0) this.hp = 0;
+            this.updateHUD();
+            if (this.hp <= 0) this.gameOver();
+          });
+          
+          document.querySelector('a-scene').appendChild(zombie);
+          this.enemiesAlive++;
+          spawned++;
+          this.updateHUD();
+          
+          setTimeout(spawn, 1000 - Math.min(this.wave * 50, 700));
+        };
+        
+        spawn();
+      },
+      
+      animateZombieEntry(zombie, entryPoint) {
+        const { type, name } = entryPoint;
+        
+        switch (type) {
+          case 'door':
+            // Door entry - zombie pushes through
+            console.log(`Zombie entering through ${name}`);
+            zombie.setAttribute('animation', 'property: position; to: 0 0 -4; dur: 2000; easing: easeOutQuad');
+            
+            // Create door slam effect
+            setTimeout(() => {
+              this.createEntryEffect(entryPoint.pos, 'door');
+            }, 500);
+            break;
+            
+          case 'window':
+            // Window entry - zombie crashes through
+            console.log(`Zombie crashing through ${name}`);
+            const [x, y, z] = entryPoint.pos;
+            const insideX = x * 0.7; // Move towards center
+            const insideZ = z * 0.7;
+            
+            zombie.setAttribute('animation', `property: position; to: ${insideX} 0 ${insideZ}; dur: 1500; easing: easeOutBounce`);
+            zombie.setAttribute('animation__tumble', 'property: rotation; to: 15 45 10; dur: 1500; easing: easeOutQuad');
+            
+            // Create glass breaking effect
+            setTimeout(() => {
+              this.createEntryEffect(entryPoint.pos, 'window');
+            }, 200);
+            break;
+            
+          case 'ceiling':
+            // Ceiling entry - zombie drops down
+            console.log(`Zombie dropping through ${name}`);
+            const [cx, cy, cz] = entryPoint.pos;
+            zombie.setAttribute('animation', `property: position; to: ${cx} 0 ${cz}; dur: 1200; easing: easeInQuad`);
+            zombie.setAttribute('animation__spin', 'property: rotation; to: 0 720 0; dur: 1200; easing: easeInQuad');
+            
+            // Create debris falling effect
+            setTimeout(() => {
+              this.createEntryEffect(entryPoint.pos, 'ceiling');
+            }, 100);
+            break;
+        }
+      },
+      
+      createEntryEffect(position, type) {
+        const [x, y, z] = position;
+        
+        switch (type) {
+          case 'door':
+            // Door slam dust
+            for (let i = 0; i < 8; i++) {
+              const dust = document.createElement('a-entity');
+              dust.setAttribute('geometry', 'primitive: sphere; radius: 0.05');
+              dust.setAttribute('material', 'color: #8b7355; opacity: 0.6; transparent: true');
+              dust.setAttribute('position', `${x + (Math.random() - 0.5) * 2} ${y + 1 + Math.random()} ${z + 0.5}`);
+              dust.setAttribute('animation', `property: position; to: ${x + (Math.random() - 0.5) * 4} ${y + 2 + Math.random() * 2} ${z + 2}; dur: 2000; easing: easeOutQuad`);
+              dust.setAttribute('animation__fade', 'property: material.opacity; to: 0; dur: 2000');
+              
+              document.querySelector('a-scene').appendChild(dust);
+              setTimeout(() => dust.remove(), 2000);
+            }
+            break;
+            
+          case 'window':
+            // Glass shards
+            for (let i = 0; i < 12; i++) {
+              const shard = document.createElement('a-entity');
+              shard.setAttribute('geometry', 'primitive: box; width: 0.05; height: 0.1; depth: 0.01');
+              shard.setAttribute('material', 'color: #87ceeb; opacity: 0.7; transparent: true; metalness: 0.1; roughness: 0.1');
+              shard.setAttribute('position', `${x + (Math.random() - 0.5) * 0.5} ${y + 1.5 + Math.random() * 0.5} ${z}`);
+              
+              const shardX = x + (Math.random() - 0.5) * 6;
+              const shardY = Math.max(0, y + Math.random() * 0.5);
+              const shardZ = z + (Math.random() - 0.5) * 4;
+              
+              shard.setAttribute('animation', `property: position; to: ${shardX} ${shardY} ${shardZ}; dur: 1500; easing: easeOutQuad`);
+              shard.setAttribute('animation__rotate', `property: rotation; to: ${Math.random() * 360} ${Math.random() * 360} ${Math.random() * 360}; dur: 1500`);
+              shard.setAttribute('animation__fade', 'property: material.opacity; to: 0; dur: 1500');
+              
+              document.querySelector('a-scene').appendChild(shard);
+              setTimeout(() => shard.remove(), 1500);
+            }
+            break;
+            
+          case 'ceiling':
+            // Falling debris
+            for (let i = 0; i < 10; i++) {
+              const debris = document.createElement('a-entity');
+              const debrisType = Math.random() > 0.5 ? 'box' : 'sphere';
+              debris.setAttribute('geometry', `primitive: ${debrisType}; ${debrisType === 'box' ? 'width: 0.1; height: 0.1; depth: 0.1' : 'radius: 0.05'}`);
+              debris.setAttribute('material', 'color: #4b5563; roughness: 0.9');
+              debris.setAttribute('position', `${x + (Math.random() - 0.5) * 1} ${y} ${z + (Math.random() - 0.5) * 1}`);
+              
+              const fallX = x + (Math.random() - 0.5) * 3;
+              const fallZ = z + (Math.random() - 0.5) * 3;
+              
+              debris.setAttribute('animation', `property: position; to: ${fallX} 0 ${fallZ}; dur: 1000; easing: easeInQuad`);
+              debris.setAttribute('animation__rotate', `property: rotation; to: ${Math.random() * 720} ${Math.random() * 720} ${Math.random() * 720}; dur: 1000`);
+              
+              document.querySelector('a-scene').appendChild(debris);
+              setTimeout(() => debris.remove(), 3000);
+            }
+            break;
+        }
+      },
+      
+      gameOver() {
+        console.log('Game Over');
+        this.state = 'gameover';
+        this.alive = false;
+        
+        document.getElementById('hud2d').style.display = 'none';
+        document.getElementById('vrRestartBtn').style.display = 'block';
+        document.getElementById('finalScore').textContent = `Score ${this.score} • Wave ${this.wave}`;
+        document.getElementById('gameover').style.display = 'grid';
+      },
+      
+      addScore(points) {
+        this.score += points;
+        this.updateHUD();
+      },
+      
+      updateHUD() {
+        document.getElementById('hudWave').textContent = `Wave ${this.wave}`;
+        document.getElementById('hudScore').textContent = `Score ${this.score}`;
+        document.getElementById('hudHP').textContent = `HP ${this.hp}`;
+      }
+    };
+
+    // Register enhanced game manager component
+    AFRAME.registerComponent('enhanced-game-manager', {
+      init() {
+        Game.init();
+      }
+    });
+
+    console.log('All components registered, game ready!');
   </script>
 </body>
 </html>
